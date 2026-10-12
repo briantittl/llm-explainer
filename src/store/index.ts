@@ -28,6 +28,13 @@ export const isModelRunning = writable(false);
 export const isFetchingModel = writable(true);
 export const isLoaded = writable(false);
 
+// Model download progress, shown as a bar under the prompt box
+export const downloadProgress = writable<{
+	loaded: number;
+	total: number;
+	phase: 'idle' | 'downloading' | 'preparing' | 'done';
+}>({ loaded: 0, total: 0, phase: 'idle' });
+
 export const inputTextExample = [
 	'Data visualization empowers users to',
 	'Artificial Intelligence is transforming the',

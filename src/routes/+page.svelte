@@ -14,6 +14,7 @@
 		modelData,
 		modelSession,
 		isFetchingModel,
+		downloadProgress,
 		selectedExampleIdx,
 		isMobile,
 		isOnBlockTransition,
@@ -69,11 +70,17 @@
 	const fetchModel = async () => {
 		// The build writes a manifest listing the model's chunk files
 		const manifestRes = await fetch(`${base}/model/${MODEL_NAME}/manifest.json`, { cache: 'no-store' });
-		const manifest: { chunks: string[]; version: string } = await manifestRes.json();
+		const manifest: { chunks: string[]; version: string; bytes: number } = await manifestRes.json();
+		downloadProgress.set({ loaded: 0, total: manifest.bytes, phase: 'downloading' });
 		const chunkUrls = manifest.chunks.map((name) => `${base}/model/${MODEL_NAME}/${name}`);
 
 		// Fetch from cache
-		const { hasCache, mergedArray } = await fetchAndMergeChunks(chunkUrls, manifest.version);
+		const { hasCache, mergedArray } = await fetchAndMergeChunks(chunkUrls, manifest.version, (loaded) =>
+			downloadProgress.set({ loaded, total: manifest.bytes, phase: 'downloading' })
+		);
+		downloadProgress.set({ loaded: manifest.bytes, total: manifest.bytes, phase: 'preparing' });
+		// Let the "Preparing" message paint before the heavy model setup below
+		await new Promise((resolve) => setTimeout(resolve, 50));
 
 		// Create a Blob from the merged array
 		const blob = new Blob([mergedArray], { type: 'application/octet-stream' });
@@ -88,6 +95,7 @@
 
 		modelSession.set(session);
 
+		downloadProgress.update((p) => ({ ...p, phase: 'done' }));
 		isFetchingModel.set(false);
 
 		const loadTime = Date.now() - appStartTime;

@@ -20,7 +20,8 @@
 		blockIdx,
 		temperature,
 		tokenIds,
-		userId
+		userId,
+		downloadProgress
 	} from '~/store';
 	import LoadingDots from './common/LoadingDots.svelte';
 	import classNames from 'classnames';
@@ -134,7 +135,8 @@
 		// $isModelRunning ||
 		$expandedBlock.id !== null ||
 		!!$weightPopover;
-	$: selectDisabled = $isModelRunning || $expandedBlock.id !== null || !!$weightPopover;
+	$: selectDisabled =
+		($isModelRunning && !$isFetchingModel) || $expandedBlock.id !== null || !!$weightPopover;
 	$: parameterDisabled = !!$weightPopover;
 </script>
 
@@ -216,9 +218,33 @@
 						>Try the examples. Please use a desktop computer to input GPT-2 prompts directly.</span
 					>
 				{:else if $isLoaded && $isFetchingModel}
-					<span class="helper-text"
-						>Try the examples while the GPT-2 medium model downloads (about 570 MB, first visit only)</span
-					>
+					<div class="helper-text download-status" role="status" aria-live="polite">
+						{#if $downloadProgress.phase === 'preparing'}
+							<span>Download complete. Setting up the model (this can take a minute)…</span>
+						{:else}
+							<span
+								>Downloading GPT-2 medium: {Math.round($downloadProgress.loaded / 1e6)} of {$downloadProgress.total
+									? Math.round($downloadProgress.total / 1e6)
+									: '…'} MB (first visit only). Try the examples meanwhile.</span
+							>
+						{/if}
+						<div
+							class="progress-track"
+							role="progressbar"
+							aria-label="Model download"
+							aria-valuemin="0"
+							aria-valuemax="100"
+							aria-valuenow={$downloadProgress.total
+								? Math.round((100 * $downloadProgress.loaded) / $downloadProgress.total)
+								: 0}
+						>
+							<div
+								class="progress-fill"
+								class:preparing={$downloadProgress.phase === 'preparing'}
+								style={`width: ${$downloadProgress.total ? (100 * $downloadProgress.loaded) / $downloadProgress.total : 0}%`}
+							></div>
+						</div>
+					</div>
 				{:else if exceedLimit}
 					<span class="helper-text">You can enter up to {wordLimit} words.</span>
 				{/if}
@@ -344,6 +370,32 @@
 	:global(.example-dropdown) {
 		:global(.active) {
 			background-color: theme('colors.gray.100') !important;
+		}
+	}
+	.download-status {
+		width: 100%;
+		text-align: right;
+	}
+	.progress-track {
+		margin-top: 0.25rem;
+		height: 6px;
+		width: 100%;
+		border-radius: 999px;
+		background: theme('colors.gray.200');
+		overflow: hidden;
+	}
+	.progress-fill {
+		height: 100%;
+		border-radius: 999px;
+		background: theme('colors.blue.500');
+		transition: width 0.3s ease;
+		&.preparing {
+			animation: pulse 1.2s ease-in-out infinite;
+		}
+	}
+	@keyframes pulse {
+		50% {
+			opacity: 0.45;
 		}
 	}
 	.helper-text {

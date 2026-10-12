@@ -31,7 +31,12 @@ export const fakeRunWithCachedData = async ({
 	tokenIds.set(cachedData.tokenIds);
 
 	setTimeout(async () => {
-		await showFlowAnimation(cachedData.tokens.length, true);
+		// If the animation can't finish (e.g. the tab is busy downloading the model),
+		// show the result anyway after a few seconds instead of locking the controls.
+		await Promise.race([
+			showFlowAnimation(cachedData.tokens.length, true),
+			new Promise((resolve) => setTimeout(resolve, 4000))
+		]);
 		adjustTemperature({
 			tokenizer,
 			logits: cachedData.logits,
