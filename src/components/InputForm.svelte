@@ -4,6 +4,7 @@
 
 	import { ChevronDownOutline } from 'flowbite-svelte-icons';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import {
 		inputText,
 		isModelRunning,
@@ -74,19 +75,22 @@
 		// Complete any running animation before starting new generation
 		completeCurrentAnimation();
 
-		// Read the prompt straight from the box so the newest typing is always used
-		if (inputRef) {
-			inputTextTemp = inputRef.innerText;
-			// The student typed something new: the greyed-out word predicted for the old
-			// prompt doesn't belong on the end of it
-			if (inputTextTemp.trim() !== ($inputText || '').trim()) predictedTokenTemp = '';
-		}
+		// Work out the prompt right now, from what is actually in the box. Reading the
+		// stores with get() avoids the stale copies that made Generate run old text.
+		const typed = (inputRef ? inputRef.innerText : inputTextTemp).replace(/[\s\n]+/g, ' ');
+		const lastPrompt = (get(inputText) || '').replace(/[\s\n]+/g, ' ');
+		const edited = typed.trim() !== lastPrompt.trim();
+		// Unedited prompt: Generate accepts the greyed-out predicted word, as before.
+		// Edited prompt: the prediction was for the old text, so it is dropped.
+		const nextText = edited ? typed : typed + (get(predictedToken)?.token || '');
+
+		predictedTokenTemp = '';
+		setBoxText(nextText);
 
 		setTimeout(() => {
-			onFocusInput();
 			textPages.find((page) => page.id === 'how-transformers-work')?.complete();
 
-			inputText.set(inputTextTemp);
+			inputText.set(nextText);
 
 			window.dataLayer?.push({
 				event: 'generate-next-token',
@@ -96,7 +100,7 @@
 				sampling_value: $sampling.value,
 				temperature_value: $temperature,
 				current_token_length: $tokenIds.length,
-				input_word_count: inputTextTemp
+				input_word_count: nextText
 					.trim()
 					.split(/\s+/)
 					.filter((word) => word.length > 0).length,
