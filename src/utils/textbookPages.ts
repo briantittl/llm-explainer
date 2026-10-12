@@ -36,7 +36,7 @@ export const textPages: TextbookPage[] = [
 	{
 		id: 'what-is-transformer',
 		title: 'What is Transformer?',
-		content: `<p><strong>Transformer</strong> is the core architecture behind modern AI, powering models like ChatGPT and Gemini. Introduced in 2017, it revolutionized how AI processes information. The same architecture is used for training on massive datasets and for inference to generate outputs. Here we use GPT-2 (small), simpler than newer ones but perfect for learning the fundamentals.</p>
+		content: `<p><strong>Transformer</strong> is the core architecture behind modern AI, powering models like ChatGPT and Gemini. Introduced in 2017, it revolutionized how AI processes information. The same architecture is used for training on massive datasets and for inference to generate outputs. Here we use GPT-2 (medium), with 355 million parameters: far smaller than today’s chatbots, but built the same way.</p>
 `,
 		on: () => {},
 		out: () => {}
@@ -333,7 +333,7 @@ export const textPages: TextbookPage[] = [
 		id: 'output-concatenation',
 		title: 'Attention Output & Concatenation',
 		content:
-			'<p>Each head <span class="highlight">multiplies its <span class="purple">attention scores</span> with the <span class="green">Value</span> embeddings to produce its attention output</span>—a refined representation of each token after considering context.</p><p>GPT-2 (small) has 12 such outputs, which are concatenated to form a single vector of the original size (768 numbers).</p>',
+			'<p>Each head <span class="highlight">multiplies its <span class="purple">attention scores</span> with the <span class="green">Value</span> embeddings to produce its attention output</span>—a refined representation of each token after considering context.</p><p>GPT-2 (medium) has 16 such outputs, which are concatenated to form a single vector of the original size (1,024 numbers).</p>',
 		on: function () {
 			this.timeoutId = setTimeout(
 				() => {

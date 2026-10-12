@@ -108,7 +108,38 @@ def export_onnx(model, path):
 def quantize(src, dst):
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
-    quantize_dynamic(src, dst, weight_type=QuantType.QInt8)
+    # Per-channel scales matter for GPT-2: a single scale per weight matrix lets a few
+    # outlier values swamp the rest, and the model's predictions turn to word fragments.
+    quantize_dynamic(src, dst, weight_type=QuantType.QInt8, per_channel=True)
+
+
+def compare(fp32_path, q8_path, names):
+    """Print the top-5 next tokens from the full and compressed models side by side."""
+    import onnxruntime as ort
+
+    tok = load_tokenizer()
+    if tok is None:
+        return
+    a = ort.InferenceSession(fp32_path, providers=["CPUExecutionProvider"])
+    b = ort.InferenceSession(q8_path, providers=["CPUExecutionProvider"])
+    agree = 0
+    for prompt in CHECK_PROMPTS:
+        ids = np.array([tok.encode(prompt)], dtype=np.int64)
+        tops = []
+        for sess in (a, b):
+            logits = sess.run(["linear_output"], {"input": ids})[0].reshape(-1)
+            tops.append([tok.decode([int(t)]) for t in np.argsort(-logits)[:5]])
+        agree += tops[0][0] == tops[1][0]
+        print(f"::notice title=Quantization check::{prompt!r} full={tops[0]} compressed={tops[1]}")
+    print(f"::notice title=Quantization check::top-1 agreement {agree}/{len(CHECK_PROMPTS)}")
+
+
+CHECK_PROMPTS = [
+    "I sat on the river bank and watched the",
+    "The capital of France is",
+    "Once upon a time there was a",
+    "My favorite color is",
+]
 
 
 def chunk(path, out_dir):
@@ -290,6 +321,7 @@ def main():
     print("3/5 quantizing to 8-bit")
     quantize(fp32, q8)
     print(f"    int8: {os.path.getsize(q8) / 1e6:.0f} MB")
+    compare(fp32, q8, names)
     print("4/5 chunking")
     if os.path.isdir(out_dir):
         shutil.rmtree(out_dir)

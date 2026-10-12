@@ -217,7 +217,7 @@
 					>
 				{:else if $isLoaded && $isFetchingModel}
 					<span class="helper-text"
-						>Try the examples while GPT-2 model is being downloaded (600MB)</span
+						>Try the examples while the GPT-2 medium model downloads (about 410 MB, first visit only)</span
 					>
 				{:else if exceedLimit}
 					<span class="helper-text">You can enter up to {wordLimit} words.</span>
