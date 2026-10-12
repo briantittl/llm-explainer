@@ -45,11 +45,17 @@ jobs:
 
       - name: Convert GPT-2 to browser format
         if: steps.model-cache.outputs.cache-hit != 'true'
+        shell: bash
         run: |
-          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-          pip install transformers==4.46.3 onnx==1.17.0 onnxruntime==1.20.1 "numpy<2.3"
-          python scripts/build_model.py --model "$MODEL_NAME"
-          rm -rf src/utils/model/params_output
+          set -o pipefail
+          # On failure, repeat the last lines of output as an annotation so they show on the run summary
+          report() { echo "::error title=Model conversion failed::$(tail -25 convert.log | tr '\n' '|' | sed 's/%/%25/g')"; exit 1; }
+          {
+            pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu &&
+            pip install transformers==4.46.3 onnx==1.17.0 onnxruntime==1.20.1 "numpy<2.3" &&
+            python scripts/build_model.py --model "$MODEL_NAME"
+          } 2>&1 | tee convert.log || report
+          rm -rf src/utils/model/params_output convert.log
 
       - uses: actions/setup-node@v4
         with:
