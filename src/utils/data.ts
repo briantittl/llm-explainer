@@ -47,19 +47,43 @@ export const fakeRunWithCachedData = async ({
 	}, 0);
 };
 
-export const runModel = async ({
-	tokenizer,
-	input,
-	temperature,
-	sampling
-}: {
+// GPT-2 medium takes long enough that a student can click Generate again before the
+// previous run finishes. Runs go one at a time, and a run whose input has already been
+// replaced by a newer request is skipped, so the newest input always wins.
+let latestRunId = 0;
+let runQueue: Promise<void> = Promise.resolve();
+
+export const runModel = (args: {
 	tokenizer: PreTrainedTokenizer;
 	input: string;
 	temperature: number;
 	sampling: Sampling;
 }) => {
+	const runId = ++latestRunId;
 	isModelRunning.set(true);
+	runQueue = runQueue
+		.then(() => (runId === latestRunId ? runModelNow(args, runId) : undefined))
+		.catch((error) => {
+			console.error('Model run failed:', error);
+			if (runId === latestRunId) isModelRunning.set(false);
+		});
+	return runQueue;
+};
 
+const runModelNow = async (
+	{
+		tokenizer,
+		input,
+		temperature,
+		sampling
+	}: {
+		tokenizer: PreTrainedTokenizer;
+		input: string;
+		temperature: number;
+		sampling: Sampling;
+	},
+	runId: number
+) => {
 	const { token_ids, input_tokens } = await getTokenization(tokenizer, input === '' ? ' ' : input);
 
 	let isOneTokenAdded: boolean;
@@ -70,7 +94,12 @@ export const runModel = async ({
 		return token_ids;
 	});
 
+	const started = performance.now();
 	const { logits, outputs } = await getData(token_ids);
+	console.info(`GPT-2 run: ${token_ids.length} tokens in ${Math.round(performance.now() - started)} ms`);
+
+	// A newer request came in while this one ran; let that one draw instead
+	if (runId !== latestRunId) return;
 
 	const { probabilities, sampled } = getProbabilities({ tokenizer, logits, sampling, temperature });
 
@@ -143,7 +172,9 @@ export const getData = async (token_ids: number[]) => {
 		const feeds = { input: inputTensor };
 
 		// Run inference
+		const t0 = performance.now();
 		const results = await session.run(feeds);
+		console.info(`  inference ${Math.round(performance.now() - t0)} ms`);
 
 		// Extract the logits
 		const logits = results['linear_output'].data;

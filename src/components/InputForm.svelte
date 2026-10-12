@@ -62,6 +62,9 @@
 		// Complete any running animation before starting new generation
 		completeCurrentAnimation();
 
+		// Read the prompt straight from the box so the newest typing is always used
+		if (inputRef) inputTextTemp = inputRef.innerText;
+
 		setTimeout(() => {
 			onFocusInput();
 			textPages.find((page) => page.id === 'how-transformers-work')?.complete();
