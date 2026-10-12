@@ -187,8 +187,14 @@ def chunk(path, out_dir):
                 c.write(data)
             names.append(name)
             i += 1
+    import hashlib
+
+    digest = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            digest.update(block)
     with open(os.path.join(out_dir, "manifest.json"), "w") as f:
-        json.dump({"chunks": names, "bytes": os.path.getsize(path)}, f)
+        json.dump({"chunks": names, "bytes": os.path.getsize(path), "version": digest.hexdigest()[:12]}, f)
     return names
 
 

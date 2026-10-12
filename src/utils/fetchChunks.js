@@ -1,6 +1,7 @@
 const CACHE_PREFIX = 'onnx-model-cache';
-// Bump the suffix whenever the model files change so browsers re-download them
-const CACHE_NAME = `${CACHE_PREFIX}-${import.meta.env.VITE_MODEL_NAME || 'gpt2-medium'}-v1`;
+// The cache name includes a version taken from the model's manifest, so browsers
+// automatically drop old model files and re-download when the model changes.
+let CACHE_NAME = `${CACHE_PREFIX}-default`;
 
 async function fetchModelChunks(chunkUrls) {
 	await clearOldCaches();
@@ -13,7 +14,7 @@ async function fetchModelChunks(chunkUrls) {
 	const fetchPromises = chunkUrls.map((url, index) => {
 		if (!cachedResponses[index]) {
 			// console.log(`Fetching and caching: ${url}`);
-			return fetch(url).then((response) => {
+			return fetch(url, { cache: 'no-store' }).then((response) => {
 				if (response.ok) {
 					cache.put(url, response.clone());
 					return response.arrayBuffer();
@@ -32,7 +33,8 @@ async function fetchModelChunks(chunkUrls) {
 	return { hasCache, modelBuffers };
 }
 
-export async function fetchAndMergeChunks(urls) {
+export async function fetchAndMergeChunks(urls, version = 'default') {
+	CACHE_NAME = `${CACHE_PREFIX}-${version}`;
 	const { hasCache, modelBuffers: chunks } = await fetchModelChunks(urls);
 	const totalSize = chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
 	const mergedArray = new Uint8Array(totalSize);

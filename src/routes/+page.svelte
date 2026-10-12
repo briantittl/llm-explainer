@@ -68,12 +68,12 @@
 	// Fetch model onnx
 	const fetchModel = async () => {
 		// The build writes a manifest listing the model's chunk files
-		const manifestRes = await fetch(`${base}/model/${MODEL_NAME}/manifest.json`);
-		const manifest: { chunks: string[] } = await manifestRes.json();
+		const manifestRes = await fetch(`${base}/model/${MODEL_NAME}/manifest.json`, { cache: 'no-store' });
+		const manifest: { chunks: string[]; version: string } = await manifestRes.json();
 		const chunkUrls = manifest.chunks.map((name) => `${base}/model/${MODEL_NAME}/${name}`);
 
 		// Fetch from cache
-		const { hasCache, mergedArray } = await fetchAndMergeChunks(chunkUrls);
+		const { hasCache, mergedArray } = await fetchAndMergeChunks(chunkUrls, manifest.version);
 
 		// Create a Blob from the merged array
 		const blob = new Blob([mergedArray], { type: 'application/octet-stream' });
