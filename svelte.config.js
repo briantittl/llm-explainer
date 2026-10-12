@@ -27,7 +27,8 @@ const config = {
 			'~': './src'
 		},
 		paths: {
-			base: process.env.NODE_ENV === 'production' ? '/transformer-explainer' : ''
+			// On GitHub Pages the site lives at /<repo-name>; the workflow sets BASE_PATH
+			base: process.env.BASE_PATH ?? (process.env.NODE_ENV === 'production' ? '/transformer-explainer' : '')
 		}
 	}
 };

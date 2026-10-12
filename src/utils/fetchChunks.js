@@ -1,5 +1,6 @@
 const CACHE_PREFIX = 'onnx-model-cache';
-const CACHE_NAME = `${CACHE_PREFIX}-v2`;
+// Bump the suffix whenever the model files change so browsers re-download them
+const CACHE_NAME = `${CACHE_PREFIX}-${import.meta.env.VITE_MODEL_NAME || 'gpt2-medium'}-v1`;
 
 async function fetchModelChunks(chunkUrls) {
 	await clearOldCaches();

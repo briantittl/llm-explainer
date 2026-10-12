@@ -6,7 +6,10 @@ export default defineConfig({
 	css: {
 		preprocessorOptions: {
 			scss: {
-				additionalData: `@import 'src/styles/variables.scss';`
+				additionalData: `@import 'src/styles/variables.scss';`,
+				// Vite 6's Sass compiler resolves imports from these folders, not the working directory
+				loadPaths: [process.cwd()],
+				silenceDeprecations: ['import', 'global-builtin', 'legacy-js-api']
 			}
 		}
 	},

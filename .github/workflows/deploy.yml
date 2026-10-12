@@ -1,0 +1,83 @@
+name: Build model and deploy to GitHub Pages
+
+# Runs on every push to main, or by hand from the Actions tab ("Run workflow").
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  # Which GPT-2 to run: gpt2, gpt2-medium, or gpt2-large.
+  # Keep this in sync with MODEL_NAME's default in src/constants/model.ts.
+  MODEL_NAME: gpt2-medium
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # The converted model only needs rebuilding when the conversion code changes,
+      # so it is cached between runs (first run: ~15 minutes, later runs: ~2 minutes).
+      - name: Restore converted model
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            static/model/${{ env.MODEL_NAME }}
+            src/constants/examples
+          key: model-${{ env.MODEL_NAME }}-${{ hashFiles('scripts/build_model.py', 'src/utils/model/model.py') }}
+
+      - uses: actions/setup-python@v5
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        with:
+          python-version: '3.11'
+
+      - name: Convert GPT-2 to browser format
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install transformers==4.46.3 onnx==1.17.0 onnxruntime==1.20.1 "numpy<2.3"
+          python scripts/build_model.py --model "$MODEL_NAME"
+          rm -rf src/utils/model/params_output
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Build site
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}
+          VITE_MODEL_NAME: ${{ env.MODEL_NAME }}
+
+      - name: Report site size
+        run: du -sh build build/model/* || true
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

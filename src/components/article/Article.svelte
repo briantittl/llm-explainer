@@ -50,10 +50,10 @@
 		<p>
 			GPT-2 family of models are prominent examples of text-generative Transformers. Transformer
 			Explainer is powered by the
-			<a href="https://huggingface.co/openai-community/gpt2" title="Hugging Face" target="_blank"
+			<a href="https://huggingface.co/openai-community/gpt2-medium" title="Hugging Face" target="_blank"
 				>GPT-2</a
 			>
-			(small) model which has 124 million parameters. While it is not the latest or most powerful Transformer
+			(medium) model which has 355 million parameters. (The original Transformer Explainer uses GPT-2 small, with 124 million; this classroom version uses the larger medium model so its predictions are more sensible.) While it is not the latest or most powerful Transformer
 			model, it shares many of the same architectural components and principles found in the current
 			state-of-the-art models making it an ideal starting point for understanding the basics.
 		</p>
@@ -131,9 +131,9 @@
 		<div class="article-subsection" id="article-token-embedding">
 			<h3>Step 2. Token Embedding</h3>
 			<p>
-				GPT-2 (small) represents each token in the vocabulary as a 768-dimensional vector; the
+				GPT-2 (medium) represents each token in the vocabulary as a 1,024-dimensional vector; the
 				dimension of the vector depends on the model. These embedding vectors are stored in a matrix
-				of shape <code>(50,257, 768)</code>, containing approximately 39 million parameters! This
+				of shape <code>(50,257, 1,024)</code>, containing approximately 51 million parameters! This
 				extensive matrix allows the model to assign semantic meaning to each token, in the sense
 				that tokens with similar usage or meaning in language are placed close together in this
 				high-dimensional space, while dissimilar tokens are farther apart.
@@ -208,8 +208,8 @@
 			such blocks that are stacked sequentially one after the other. The token representations
 			evolve through layers, from the first block to the last one, allowing the model to build up an
 			intricate understanding of each token. This layered approach leads to higher-order
-			representations of the input. The GPT-2 (small) model we are examining consists of <code
-				>12</code
+			representations of the input. The GPT-2 (medium) model we are examining consists of <code
+				>24</code
 			> such blocks.
 		</p>
 	</div>
@@ -233,7 +233,7 @@
 					<Katex
 						displayMode
 						math={`
-		QKV_{ij} = ( \\sum_{d=1}^{768} \\text{Embedding}_{i,d} \\cdot \\text{Weights}_{d,j}) + \\text{Bias}_j
+		QKV_{ij} = ( \\sum_{d=1}^{1024} \\text{Embedding}_{i,d} \\cdot \\text{Weights}_{d,j}) + \\text{Bias}_j
 		`}
 					/>
 				</div>
@@ -280,8 +280,8 @@
 			<p>
 				<span class="q-color">Query</span>, <span class="k-color">key</span>, and
 				<span class="v-color">Value</span>
-				vectors are split into multiple heads—in GPT-2 (small)'s case, into
-				<code>12</code> heads. Each head processes a segment of the embeddings independently, capturing
+				vectors are split into multiple heads—in GPT-2 (medium)'s case, into
+				<code>16</code> heads. Each head processes a segment of the embeddings independently, capturing
 				different syntactic and semantic relationships. This design facilitates parallel learning of
 				diverse linguistic features, enhancing the model's representational power.
 			</p>
@@ -330,7 +330,7 @@
 				The model uses the masked self-attention scores and multiplies them with the
 				<span class="v-color">Value</span> matrix to get the
 				<span class="purple-color">final output</span>
-				of the self-attention mechanism. GPT-2 has <code>12</code> self-attention heads, each capturing
+				of the self-attention mechanism. GPT-2 (medium) has <code>16</code> self-attention heads, each capturing
 				different relationships between tokens. The outputs of these heads are concatenated and passed
 				through a linear projection.
 			</p>
@@ -359,16 +359,16 @@
 		</p>
 		<p>
 			The first linear transformation expands the dimensionality of the input four-fold from <code
-				>768</code
+				>1,024</code
 			>
 			to
-			<code>3072</code>. This expansion step allows the model to project the token representations
+			<code>4,096</code>. This expansion step allows the model to project the token representations
 			into a higher-dimensional space, where it can capture richer and more complex patterns that
 			may not be visible in the original dimension.
 		</p>
 		<p>
 			The second linear transformation then reduces the dimensionality back to the original size of <code
-				>768</code
+				>1,024</code
 			>.This compression step brings the representations back to a manageable size while retaining
 			the useful nonlinear transformations introduced in the expansion step.
 		</p>
@@ -549,7 +549,7 @@
 	<div class="article-section" data-click="article-implementation">
 		<h2>How is Transformer Explainer Implemented?</h2>
 		<p>
-			Transformer Explainer features a live GPT-2 (small) model running directly in the browser.
+			Transformer Explainer features a live GPT-2 (medium) model, compressed to 8-bit weights, running directly in the browser.
 			This model is derived from the PyTorch implementation of GPT by Andrej Karpathy's
 			<a href="https://github.com/karpathy/nanoGPT" title="Github" target="_blank"
 				>nanoGPT project</a

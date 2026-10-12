@@ -16,7 +16,7 @@
 	export let open: PopoverProps['open'] = false;
 
 	const numPositions = 40;
-	const fullEmbeddingDim = 768; // Compute 768 dimensions
+	const fullEmbeddingDim = 1024; // GPT-2 medium embedding size
 	const visualEmbeddingDim = 100; // Truncate to 100 dimensions for visualization
 
 	let numBarcodeLines = 21;
@@ -201,7 +201,7 @@
 								<span class="mr-1 rounded-sm border border-blue-400 pl-2 pr-2"
 									>{$hoveredRow ? $hoveredRow : ' i '}</span
 								>
-								/ 768)</sup
+								/ 1024)</sup
 							>
 							<span>)</span>
 							<!-- <span>/ 10000 ^ ( 2 *</span>

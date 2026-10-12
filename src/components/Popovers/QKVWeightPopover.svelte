@@ -323,7 +323,7 @@
 					>{`Embeddings originate from tokens \nbut evolve through blocks, becoming \nabstract representations.`}</HelpPopover
 				>
 			</div>
-			<!-- (tokenLen, 768) -->
+			<!-- (tokenLen, 1024) -->
 			<Matrix
 				className="token-embedding"
 				data={embeddingData}
@@ -413,7 +413,7 @@
 				<Katex
 					displayMode
 					math={`
-	(Embedding_{1,1}×Weights_{1,1} + \\cdots + Embedding_{1,768}×Weights_{768,1})`}
+	(Embedding_{1,1}×Weights_{1,1} + \\cdots + Embedding_{1,1024}×Weights_{1024,1})`}
 				/>
 			</span>
 			<span class="part2">
@@ -424,7 +424,7 @@
 			<Katex
 				displayMode
 				math={`
-	\\sum_{d=1}^{768} Embedding_{id} \\cdot Weights_{dj} + Bias_j = QKV_{ij} 
+	\\sum_{d=1}^{1024} Embedding_{id} \\cdot Weights_{dj} + Bias_j = QKV_{ij} 
 	`}
 			/>
 		</div>

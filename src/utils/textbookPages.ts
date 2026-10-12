@@ -125,7 +125,7 @@ export const textPages: TextbookPage[] = [
 	{
 		id: 'token-embedding',
 		title: 'Token Embedding',
-		content: `<p><strong>Tokenization</strong> splits input text into tokens—small units like words or parts of words. GPT-2 (small) has 50,257 token vocabulary, each with a unique ID.</p><p>In the <strong>token embedding</strong> step, every token is matched to a 768-number vector from a large lookup table. These vectors are learned during training to best represent each token’s meaning.</p>`,
+		content: `<p><strong>Tokenization</strong> splits input text into tokens—small units like words or parts of words. GPT-2 has a 50,257-token vocabulary, each with a unique ID.</p><p>In the <strong>token embedding</strong> step, every token is matched to a 1,024-number vector from a large lookup table. These vectors are learned during training to best represent each token’s meaning.</p>`,
 		on: function () {
 			const selectors = [
 				'.token-column .column.token-string',
@@ -187,7 +187,7 @@ export const textPages: TextbookPage[] = [
 	{
 		id: 'blocks',
 		title: 'Repetitive Transformer Blocks',
-		content: `<p>A <strong>Transformer block</strong> is the main unit of processing in the model. It has two parts:</p><ul><li><strong>Multi-head self-attention</strong> – lets tokens share information</li><li><strong>MLP</strong> – refines each token's details</li></ul><p>Models stack many blocks so token representations become richer as they pass through. GPT-2 (small) has 12 of them.</p>`,
+		content: `<p>A <strong>Transformer block</strong> is the main unit of processing in the model. It has two parts:</p><ul><li><strong>Multi-head self-attention</strong> – lets tokens share information</li><li><strong>MLP</strong> – refines each token's details</li></ul><p>Models stack many blocks so token representations become richer as they pass through. GPT-2 (medium), the model running here, has 24 of them.</p>`,
 		on: function () {
 			this.timeoutId = setTimeout(
 				() => {
@@ -285,7 +285,7 @@ export const textPages: TextbookPage[] = [
 		id: 'multi-head',
 		title: 'Multi-head',
 		content:
-			'<p>After creating <span class="blue">Q</span>, <span class="red">K</span>, and <span class="green">V</span> embeddings, the model splits them into several <strong>heads</strong> (12 in GPT-2 small). Each head works with its own smaller set of <span class="blue">Q</span>/<span class="red">K</span>/<span class="green">V</span>, focusing on different patterns in the text—like grammar, meaning, or long-range links.</p><p>Multiple heads let the model learn many kinds of relationships in parallel, making its understanding richer.</p>',
+			'<p>After creating <span class="blue">Q</span>, <span class="red">K</span>, and <span class="green">V</span> embeddings, the model splits them into several <strong>heads</strong> (16 in GPT-2 medium). Each head works with its own smaller set of <span class="blue">Q</span>/<span class="red">K</span>/<span class="green">V</span>, focusing on different patterns in the text—like grammar, meaning, or long-range links.</p><p>Multiple heads let the model learn many kinds of relationships in parallel, making its understanding richer.</p>',
 		on: () => {
 			highlightAttentionPath();
 			highlightElements(['.multi-head .head-title']);

@@ -4,6 +4,7 @@ import tailwindConfig from '../../tailwind.config';
 import resolveConfig from 'tailwindcss/resolveConfig';
 import { ex0 } from '~/constants/examples';
 import { textPages } from '~/utils/textbookPages';
+import { MODEL_NAME } from '~/constants/model';
 
 const { theme } = resolveConfig(tailwindConfig);
 
@@ -47,10 +48,11 @@ export const tokens = writable<string[]>(ex0?.tokens);
 export const tokenIds = writable<number[]>(ex0?.tokenIds);
 
 export const modelMetaMap: Record<string, ModelMetaData> = {
-	gpt2: { layer_num: 12, attention_head_num: 12, dimension: 768, chunkTotal: 63 },
-	'gpt2-medium': { layer_num: 24, attention_head_num: 16, dimension: 1024 },
-	'gpt2-large': { layer_num: 36, attention_head_num: 20, dimension: 1280 }
+	gpt2: { layer_num: 12, attention_head_num: 12, dimension: 768, params: '124 million', label: 'GPT-2 (small)' },
+	'gpt2-medium': { layer_num: 24, attention_head_num: 16, dimension: 1024, params: '355 million', label: 'GPT-2 (medium)' },
+	'gpt2-large': { layer_num: 36, attention_head_num: 20, dimension: 1280, params: '774 million', label: 'GPT-2 (large)' }
 };
+export const activeModelMeta = modelMetaMap[MODEL_NAME];
 
 // selected token vector
 export const highlightedToken = writable<HighlightedToken>({
@@ -74,7 +76,7 @@ export const inputText = writable(inputTextExample[initialExIdx]);
 // export const tokens = derived(inputText, ($inputText) => $inputText.trim().split(' '));
 
 // selected model and meta data
-const initialSelectedModel = 'gpt2';
+const initialSelectedModel = MODEL_NAME;
 export const selectedModel = writable(initialSelectedModel);
 export const modelMeta = derived(selectedModel, ($selectedModel) => modelMetaMap[$selectedModel]);
 

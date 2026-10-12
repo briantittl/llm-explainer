@@ -414,7 +414,7 @@
 				<Katex
 					displayMode
 					math={`
-	(Embedding_{1}×Weights_{1,1} + \\cdots + Embedding_{768}×Weights_{768,1})`}
+	(Embedding_{1}×Weights_{1,1} + \\cdots + Embedding_{1024}×Weights_{1024,1})`}
 				/>
 			</span>
 			<span class="part2">
@@ -425,7 +425,7 @@
 			<Katex
 				displayMode
 				math={`
-	\\sum_{d=1}^{768} Embedding_{d} \\cdot Weights_{di} + Bias_j = Logits_{i} 
+	\\sum_{d=1}^{1024} Embedding_{d} \\cdot Weights_{di} + Bias_j = Logits_{i} 
 	`}
 			/>
 		</div>

@@ -25,6 +25,7 @@
 	import LoadingDots from './common/LoadingDots.svelte';
 	import classNames from 'classnames';
 	import Sampling from './Sampling.svelte';
+	import { WORD_LIMIT } from '~/constants/model';
 	import { completeCurrentAnimation } from '~/utils/animation';
 	import { textPages } from '~/utils/textbookPages';
 
@@ -37,7 +38,7 @@
 
 	$: predictedTokenTemp = $predictedToken?.token || '';
 
-	const wordLimit = 12;
+	const wordLimit = WORD_LIMIT;
 	$: exceedLimit = inputTextTemp.split(' ').length >= wordLimit;
 
 	// Text input

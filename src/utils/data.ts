@@ -7,7 +7,7 @@ import {
 	isModelRunning,
 	predictedToken,
 	modelSession,
-	modelMetaMap
+	activeModelMeta
 } from '~/store';
 import { get } from 'svelte/store';
 import { reshapeArray } from './array';
@@ -334,18 +334,15 @@ function randomChoice(items: Probabilities): Probability {
 	return items[items.length - 1];
 }
 
-const attentionTensors = Array(modelMetaMap.gpt2.layer_num)
+// Must match ATTN_SUFFIXES in scripts/build_model.py
+const attentionSuffixes = ['attn', 'attn_masked', 'attn_dropout'];
+
+const attentionTensors = Array(activeModelMeta.layer_num)
 	.fill(0)
 	.flatMap((_, i) => {
-		return Array(modelMetaMap.gpt2.attention_head_num)
+		return Array(activeModelMeta.attention_head_num)
 			.fill(0)
-			.flatMap((_, j) => [
-				`block_${i}_attn_head_${j}_attn`,
-				`block_${i}_attn_head_${j}_attn_scaled`,
-				`block_${i}_attn_head_${j}_attn_masked`,
-				`block_${i}_attn_head_${j}_attn_softmax`,
-				`block_${i}_attn_head_${j}_attn_dropout`
-			]);
+			.flatMap((_, j) => attentionSuffixes.map((s) => `block_${i}_attn_head_${j}_${s}`));
 	});
 
 const targetTensors = [...attentionTensors];

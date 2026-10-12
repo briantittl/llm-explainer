@@ -36,6 +36,7 @@
 
 	import { adjustTemperature, runModel, fakeRunWithCachedData } from '~/utils/data';
 	import { fetchAndMergeChunks } from '~/utils/fetchChunks';
+	import { MODEL_NAME } from '~/constants/model';
 	import WeightPopovers from '~/components/WeightPopovers.svelte';
 	import { fade } from 'svelte/transition';
 	import { AutoTokenizer } from '@xenova/transformers';
@@ -66,10 +67,10 @@
 
 	// Fetch model onnx
 	const fetchModel = async () => {
-		const chunkNum = 63; //TODO: move to model meta
-		const chunkUrls = Array(chunkNum)
-			.fill(0)
-			.map((d, i) => `${base}/model-v2/gpt2.onnx.part${i}`);
+		// The build writes a manifest listing the model's chunk files
+		const manifestRes = await fetch(`${base}/model/${MODEL_NAME}/manifest.json`);
+		const manifest: { chunks: string[] } = await manifestRes.json();
+		const chunkUrls = manifest.chunks.map((name) => `${base}/model/${MODEL_NAME}/${name}`);
 
 		// Fetch from cache
 		const { hasCache, mergedArray } = await fetchAndMergeChunks(chunkUrls);
