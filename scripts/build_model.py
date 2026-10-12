@@ -244,7 +244,12 @@ def build_examples(onnx_path, names):
         res = sess.run(None, {"input": np.array([token_ids], dtype=np.int64)})
         by_name = dict(zip(names, res))
         logits = by_name["linear_output"].reshape(-1).astype(np.float64)
-        outputs = {n: {"data": by_name[n].tolist()} for n in names if n != "linear_output"}
+        # Drop the leading batch dimension, as reshapeArray() in src/utils/array.ts does in the browser
+        outputs = {
+            n: {"data": (by_name[n][0] if by_name[n].shape[0] == 1 else by_name[n]).tolist()}
+            for n in names
+            if n != "linear_output"
+        }
         probabilities = top_k_probabilities(tok, logits)
         example = {
             "prompt": prompt,
