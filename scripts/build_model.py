@@ -105,12 +105,41 @@ def export_onnx(model, path):
     return names
 
 
-def quantize(src, dst):
+def final_matmul(path):
+    """Name of the MatMul that produces the vocabulary logits (the "LM head")."""
+    import onnx
+
+    g = onnx.load(path, load_external_data=False).graph
+    producer = {o: n for n in g.node for o in n.output}
+    name = "linear_output"
+    while name in producer:
+        node = producer[name]
+        if node.op_type in ("MatMul", "Gemm"):
+            return node.name
+        name = node.input[0]
+    return None
+
+
+def all_matmuls(path, contains):
+    import onnx
+
+    g = onnx.load(path, load_external_data=False).graph
+    return [n.name for n in g.node if n.op_type == "MatMul" and contains in n.name]
+
+
+# Compression settings tried in order; the first whose predictions match the
+# full-size model is kept. Each excludes more of the sensitive layers from 8-bit.
+STRATEGIES = [
+    ("8-bit, LM head kept full", lambda p: [final_matmul(p)]),
+    ("8-bit, LM head and MLP outputs kept full", lambda p: [final_matmul(p)] + all_matmuls(p, "mlp/c_proj")),
+    ("8-bit attention only", lambda p: [final_matmul(p)] + all_matmuls(p, "mlp/")),
+]
+
+
+def quantize(src, dst, exclude):
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
-    # Per-channel scales matter for GPT-2: a single scale per weight matrix lets a few
-    # outlier values swamp the rest, and the model's predictions turn to word fragments.
-    quantize_dynamic(src, dst, weight_type=QuantType.QInt8, per_channel=True)
+    quantize_dynamic(src, dst, weight_type=QuantType.QInt8, nodes_to_exclude=[n for n in exclude if n])
 
 
 def compare(fp32_path, q8_path, names):
@@ -119,10 +148,10 @@ def compare(fp32_path, q8_path, names):
 
     tok = load_tokenizer()
     if tok is None:
-        return
+        return True
     a = ort.InferenceSession(fp32_path, providers=["CPUExecutionProvider"])
     b = ort.InferenceSession(q8_path, providers=["CPUExecutionProvider"])
-    agree = 0
+    agree = overlap = 0
     for prompt in CHECK_PROMPTS:
         ids = np.array([tok.encode(prompt)], dtype=np.int64)
         tops = []
@@ -130,8 +159,10 @@ def compare(fp32_path, q8_path, names):
             logits = sess.run(["linear_output"], {"input": ids})[0].reshape(-1)
             tops.append([tok.decode([int(t)]) for t in np.argsort(-logits)[:5]])
         agree += tops[0][0] == tops[1][0]
+        overlap += len(set(tops[0]) & set(tops[1]))
         print(f"::notice title=Quantization check::{prompt!r} full={tops[0]} compressed={tops[1]}")
-    print(f"::notice title=Quantization check::top-1 agreement {agree}/{len(CHECK_PROMPTS)}")
+    print(f"::notice title=Quantization check::top-1 agreement {agree}/{len(CHECK_PROMPTS)}, top-5 overlap {overlap}/{5 * len(CHECK_PROMPTS)}")
+    return agree >= len(CHECK_PROMPTS) - 1 and overlap >= 3 * len(CHECK_PROMPTS)
 
 
 CHECK_PROMPTS = [
@@ -319,9 +350,16 @@ def main():
     del model
     print(f"    fp32: {os.path.getsize(fp32) / 1e6:.0f} MB")
     print("3/5 quantizing to 8-bit")
-    quantize(fp32, q8)
-    print(f"    int8: {os.path.getsize(q8) / 1e6:.0f} MB")
-    compare(fp32, q8, names)
+    for label, exclude in STRATEGIES:
+        skip = [n for n in exclude(fp32) if n]
+        print(f"::notice title=Quantization check::{label}: keeping {len(skip)} layers full size, e.g. {skip[:2]}")
+        quantize(fp32, q8, skip)
+        print(f"    {label}: {os.path.getsize(q8) / 1e6:.0f} MB")
+        print(f"::notice title=Quantization check::trying {label} ({os.path.getsize(q8) / 1e6:.0f} MB)")
+        if args.random_weights or compare(fp32, q8, names):
+            break
+    else:
+        sys.exit("::error title=Quantization check::compressed model's predictions don't match the full model; not publishing it")
     print("4/5 chunking")
     if os.path.isdir(out_dir):
         shutil.rmtree(out_dir)
