@@ -3,6 +3,7 @@
 	import Temperature from './Temperature.svelte';
 
 	import { ChevronDownOutline } from 'flowbite-svelte-icons';
+	import { onMount } from 'svelte';
 	import {
 		inputText,
 		isModelRunning,
@@ -35,7 +36,18 @@
 
 	let useCustomInput = false;
 
-	$: inputTextTemp = $inputText || '';
+	// The prompt box is edited directly by the student, so the page never re-renders its
+	// text; it only writes into the box when the prompt changes from outside (an example
+	// was picked, or Generate appended the predicted word).
+	let inputTextTemp = '';
+	const setBoxText = (text: string) => {
+		inputTextTemp = text;
+		if (inputRef && inputRef.innerText !== text) inputRef.innerText = text;
+	};
+	onMount(() => {
+		setBoxText($inputText || '');
+		return inputText.subscribe((value) => setBoxText(value || ''));
+	});
 
 	$: predictedTokenTemp = $predictedToken?.token || '';
 
@@ -51,7 +63,7 @@
 		// set predicted to empty
 		predictedTokenTemp = '';
 		// set input box text
-		inputRef.innerText = inputTextTemp;
+		setBoxText(inputTextTemp);
 	};
 
 	const onInput = (e) => {
@@ -111,8 +123,7 @@
 		selectedExampleIdx.set(i);
 		predictedTokenTemp = '';
 
-		inputTextTemp = d;
-		inputRef.innerText = inputTextTemp;
+		setBoxText(d);
 		inputText.update((prev) => {
 			if (prev === d.trim()) {
 				return d + ' ';
@@ -195,7 +206,6 @@
 						}}
 						role="input"
 					>
-						{inputTextTemp}
 					</div>
 					{#if !$isModelRunning}
 						<div
