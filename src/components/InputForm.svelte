@@ -75,7 +75,12 @@
 		completeCurrentAnimation();
 
 		// Read the prompt straight from the box so the newest typing is always used
-		if (inputRef) inputTextTemp = inputRef.innerText;
+		if (inputRef) {
+			inputTextTemp = inputRef.innerText;
+			// The student typed something new: the greyed-out word predicted for the old
+			// prompt doesn't belong on the end of it
+			if (inputTextTemp.trim() !== ($inputText || '').trim()) predictedTokenTemp = '';
+		}
 
 		setTimeout(() => {
 			onFocusInput();
