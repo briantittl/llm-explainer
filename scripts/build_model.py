@@ -194,16 +194,14 @@ def to_js(value, decimals):
     raise TypeError(type(value))
 
 
-def read_example_tokens(path):
-    """Prompt, tokens and token ids from an existing example file (tokenizer is the same for every GPT-2 size)."""
-    src = open(path, encoding="utf-8").read()
-    def grab(key):
-        m = re.search(rf"\b{key}:\s*(.+?),\n\t[a-zA-Z]+:", src, re.S)
-        return m.group(1)
-    prompt = json.loads(grab("prompt").replace("'", '"')) if grab("prompt").startswith(("'", '"')) else grab("prompt")
-    tokens = json.loads(grab("tokens").replace("'", '"'))
-    token_ids = json.loads(grab("tokenIds"))
-    return prompt, tokens, token_ids
+# The five starter prompts, in the same order as inputTextExample in src/store/index.ts
+EXAMPLE_PROMPTS = [
+    "Data visualization empowers users to",
+    "Artificial Intelligence is transforming the",
+    "As the spaceship was approaching the",
+    "On the deserted planet they discovered a",
+    "IEEE VIS conference highlights the",
+]
 
 
 def build_examples(onnx_path, names):
@@ -214,10 +212,12 @@ def build_examples(onnx_path, names):
     ex_dir = os.path.join(REPO, "src", "constants", "examples")
     for i in range(5):
         path = os.path.join(ex_dir, f"ex{i}.js")
-        prompt, tokens, token_ids = read_example_tokens(path)
-        if tok is not None:
-            token_ids = tok.encode(prompt)
-            tokens = [tok.decode([t]) for t in token_ids]
+        prompt = EXAMPLE_PROMPTS[i]
+        if tok is None:
+            print(f"  skipped ex{i}.js (needs the GPT-2 tokenizer)")
+            continue
+        token_ids = tok.encode(prompt)
+        tokens = [tok.decode([t]) for t in token_ids]
         res = sess.run(None, {"input": np.array([token_ids], dtype=np.int64)})
         by_name = dict(zip(names, res))
         logits = by_name["linear_output"].reshape(-1).astype(np.float64)
