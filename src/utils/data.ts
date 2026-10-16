@@ -25,6 +25,7 @@ export const fakeRunWithCachedData = async ({
 	sampling: Sampling;
 }) => {
 	isModelRunning.set(true);
+	predictedToken.set(undefined);
 
 	modelData.set(cachedData);
 	tokens.set(cachedData.tokens);
@@ -61,6 +62,9 @@ export const runModel = (args: {
 }) => {
 	const runId = ++latestRunId;
 	isModelRunning.set(true);
+	// The old prediction belongs to the old prompt; clear it so a quick second click on
+	// Generate can't append it to the new one
+	predictedToken.set(undefined);
 	runQueue = runQueue
 		.then(() => (runId === latestRunId ? runModelNow(args, runId) : undefined))
 		.catch((error) => {
