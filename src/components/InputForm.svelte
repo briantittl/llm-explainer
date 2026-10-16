@@ -236,8 +236,14 @@
 					<div class="loading"><LoadingDots /></div>
 				{/if}
 				{#if $isMobile}
-					<span class="helper-text"
-						>Try the examples. Please use a desktop computer to input GPT-2 prompts directly.</span
+					<span class="helper-text device-note"
+						>Tablets and phones can't run the model, so only the examples work here. Use a laptop
+						or desktop to type your own prompts.</span
+					>
+				{:else if $downloadProgress.phase === 'failed'}
+					<span class="helper-text device-note" role="alert"
+						>This computer couldn't load the model (it may not have enough memory). Close other
+						tabs and reload the page. If it fails again, the examples still work.</span
 					>
 				{:else if $isLoaded && $isFetchingModel}
 					<div class="helper-text download-status" role="status" aria-live="polite">
@@ -393,6 +399,11 @@
 		:global(.active) {
 			background-color: theme('colors.gray.100') !important;
 		}
+	}
+	.device-note {
+		max-width: 28rem;
+		text-align: right;
+		color: theme('colors.gray.600');
 	}
 	.download-status {
 		width: 100%;

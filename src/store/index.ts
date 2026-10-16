@@ -32,7 +32,7 @@ export const isLoaded = writable(false);
 export const downloadProgress = writable<{
 	loaded: number;
 	total: number;
-	phase: 'idle' | 'downloading' | 'preparing' | 'done';
+	phase: 'idle' | 'downloading' | 'preparing' | 'done' | 'failed';
 }>({ loaded: 0, total: 0, phase: 'idle' });
 
 export const inputTextExample = [
@@ -122,7 +122,10 @@ export const isMobile = readable(false, (set) => {
 	if (typeof window !== 'undefined') {
 		// Only run in browser environment
 		const userAgent = navigator.userAgent.toLowerCase();
-		set(/android|iphone|ipad|ipod/i.test(userAgent));
+		// iPads identify themselves as Macs ("Macintosh"); a Mac with a touchscreen is an iPad.
+		// Phones and tablets don't have enough memory per tab to run GPT-2 medium.
+		const isIPad = userAgent.includes('macintosh') && navigator.maxTouchPoints > 1;
+		set(isIPad || /android|iphone|ipad|ipod/i.test(userAgent));
 	}
 	return () => {}; // Cleanup function
 });

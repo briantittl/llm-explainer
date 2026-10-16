@@ -61,7 +61,13 @@
 		const unsubscribe = subscribeInputs(gpt2Tokenizer);
 
 		if (!$isMobile) {
-			await fetchModel();
+			try {
+				await fetchModel();
+			} catch (error) {
+				// Usually the device ran out of memory. The examples keep working.
+				console.error('Model failed to load:', error);
+				downloadProgress.update((p) => ({ ...p, phase: 'failed' }));
+			}
 		}
 
 		return unsubscribe;
@@ -76,23 +82,24 @@
 		const chunkUrls = manifest.chunks.map((name) => `${base}/model/${MODEL_NAME}/${name}`);
 
 		// Fetch from cache
-		const { hasCache, mergedArray } = await fetchAndMergeChunks(chunkUrls, manifest.version, (loaded) =>
-			downloadProgress.set({ loaded, total: manifest.bytes, phase: 'downloading' })
+		let { hasCache, model } = await fetchAndMergeChunks(
+			chunkUrls,
+			manifest.version,
+			(loaded) => downloadProgress.set({ loaded, total: manifest.bytes, phase: 'downloading' }),
+			manifest.bytes
 		);
 		downloadProgress.set({ loaded: manifest.bytes, total: manifest.bytes, phase: 'preparing' });
-		// Let the "Preparing" message paint before the heavy model setup below
+		// Let the "Setting up" message paint before the heavy model setup below
 		await new Promise((resolve) => setTimeout(resolve, 50));
 
-		// Create a Blob from the merged array
-		const blob = new Blob([mergedArray], { type: 'application/octet-stream' });
-
-		// Create a URL for the Blob
-		const url = URL.createObjectURL(blob);
-
-		// Create ONNX session using the Blob URL
-		const session = await ort.InferenceSession.create(url, {
-			// logSeverityLevel: 0
+		// Hand the bytes straight to ONNX Runtime (no Blob or URL copy), with its memory
+		// arena and pre-planned buffers off: both trade a little speed for a lot less memory.
+		const session = await ort.InferenceSession.create(model, {
+			enableCpuMemArena: false,
+			enableMemPattern: false
 		});
+		// ONNX Runtime has its own copy now; let the browser free ours
+		model = null;
 
 		modelSession.set(session);
 

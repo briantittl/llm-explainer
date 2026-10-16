@@ -7,17 +7,28 @@ let CACHE_NAME = `${CACHE_PREFIX}-default`;
 // page stutter (and the example animations stall) on slower computers.
 const MAX_PARALLEL = 4;
 
-async function fetchModelChunks(chunkUrls, onProgress) {
+// Must match CHUNK_SIZE in scripts/build_model.py
+const CHUNK_SIZE = 10 * 1024 * 1024;
+
+/**
+ * Download (or read from the browser cache) every chunk and write it directly into a
+ * single buffer of the model's final size. Each chunk is dropped as soon as it has been
+ * copied, so the page never holds more than one full copy of the model. The old code
+ * kept the chunks, a merged copy, and a Blob copy at the same time, which crashed tabs
+ * on low-memory Chromebooks.
+ */
+export async function fetchAndMergeChunks(urls, version = 'default', onProgress, totalBytes) {
+	CACHE_NAME = `${CACHE_PREFIX}-${version}`;
 	await clearOldCaches();
 
+	const model = new Uint8Array(totalBytes);
+	const cache = await caches.open(CACHE_NAME).catch(() => null);
 	let hasCache = false;
 	let loaded = 0;
-	const cache = await caches.open(CACHE_NAME);
-	const buffers = new Array(chunkUrls.length);
 
 	const fetchOne = async (url, index) => {
-		const cached = await cache.match(url);
 		let buffer;
+		const cached = cache ? await cache.match(url).catch(() => null) : null;
 		if (cached) {
 			hasCache = true;
 			buffer = await cached.arrayBuffer();
@@ -25,36 +36,25 @@ async function fetchModelChunks(chunkUrls, onProgress) {
 			const response = await fetch(url, { cache: 'no-store' });
 			if (!response.ok) throw new Error(`Failed to fetch ${url}`);
 			buffer = await response.arrayBuffer();
-			await cache.put(url, new Response(buffer));
+			// Saving is optional: some managed devices limit site storage
+			if (cache) await cache.put(url, new Response(buffer)).catch(() => {});
 		}
-		buffers[index] = buffer;
+		model.set(new Uint8Array(buffer), index * CHUNK_SIZE);
 		loaded += buffer.byteLength;
 		onProgress?.(loaded);
 	};
 
 	let next = 0;
 	const worker = async () => {
-		while (next < chunkUrls.length) {
+		while (next < urls.length) {
 			const index = next++;
-			await fetchOne(chunkUrls[index], index);
+			await fetchOne(urls[index], index);
 		}
 	};
-	await Promise.all(Array.from({ length: Math.min(MAX_PARALLEL, chunkUrls.length) }, worker));
+	await Promise.all(Array.from({ length: Math.min(MAX_PARALLEL, urls.length) }, worker));
 
-	return { hasCache, modelBuffers: buffers };
-}
-
-export async function fetchAndMergeChunks(urls, version = 'default', onProgress) {
-	CACHE_NAME = `${CACHE_PREFIX}-${version}`;
-	const { hasCache, modelBuffers: chunks } = await fetchModelChunks(urls, onProgress);
-	const totalSize = chunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
-	const mergedArray = new Uint8Array(totalSize);
-	let offset = 0;
-	for (const chunk of chunks) {
-		mergedArray.set(new Uint8Array(chunk), offset);
-		offset += chunk.byteLength;
-	}
-	return { hasCache, mergedArray: mergedArray.buffer };
+	if (loaded !== totalBytes) throw new Error(`Model download incomplete: ${loaded} of ${totalBytes} bytes`);
+	return { hasCache, model };
 }
 
 async function clearOldCaches() {
